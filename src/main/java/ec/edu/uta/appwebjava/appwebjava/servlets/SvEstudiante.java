@@ -10,7 +10,6 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import ec.edu.uta.appwebjava.appwebjava.utils.ApiClient;
-import jakarta.servlet.http.HttpSession;
 import org.json.JSONArray;
 
 /**
@@ -64,31 +63,48 @@ public class SvEstudiante extends HttpServlet {
     protected void doPost(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
 
-        String cedula = request.getParameter("cedula");
-        String nombre = request.getParameter("nombre");
-        String direccion = request.getParameter("direccion");
-        String telefono = request.getParameter("telefono");
-        boolean ok;
+        String accion = request.getParameter("accion");
+        boolean ok = false;
 
         try {
-            ok = ApiClient.crearEstudiante(cedula, nombre, direccion, telefono);
-        } catch (Exception e) {
-            ok = false;
-            e.printStackTrace(); // o Logger
+            switch (accion) {
+                case "crear":
+                    ok = ApiClient.crearEstudiante(
+                            request.getParameter("cedula"),
+                            request.getParameter("nombre"),
+                            request.getParameter("direccion"),
+                            request.getParameter("telefono"));
+                    break;
+                case "editar":
+                    // Redirige a un formulario de edición o lo haces inline
+                    request.getSession().setAttribute("cedulaEditar", request.getParameter("cedula"));
+                    response.sendRedirect(request.getContextPath() + "/editar.jsp");
+                    return;
+                case "actualizar":
+                    ok = ApiClient.actualizarEstudiante(
+                            request.getParameter("cedula"),
+                            request.getParameter("nombre"),
+                            request.getParameter("direccion"),
+                            request.getParameter("telefono")
+                    );
+                    break;
+                case "eliminar":
+                    ok = ApiClient.eliminarEstudiante(request.getParameter("cedula"));
+                    break;
+                default:
+                // acción desconocida
+            }
+        } catch (Exception ex) {
+            ex.printStackTrace();
         }
 
-        // Mensaje flash (opcional)
-        request.getSession().setAttribute("flashMsg",
-                ok ? "Estudiante creado correctamente." : "No se pudo crear el estudiante.");
-
-        // Refresca la lista usando tu método existente
+        request.getSession().setAttribute("flashMsg", ok ? "Operación exitosa" : "Falló la operación");
         try {
-            var estudiantes = ApiClient.getEstudiantes();
-            request.getSession().setAttribute("estudiantes", estudiantes);
-        } catch (Exception e) {
-            e.printStackTrace();
+            JSONArray lista = ApiClient.getEstudiantes();
+            request.getSession().setAttribute("estudiantes", lista);
+        } catch (Exception ex) {
+            ex.printStackTrace();
         }
-
         response.sendRedirect(request.getContextPath() + "/index.jsp");
     }
 

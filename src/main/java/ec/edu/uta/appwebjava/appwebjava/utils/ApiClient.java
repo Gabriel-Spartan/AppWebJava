@@ -11,6 +11,7 @@ import java.net.URLEncoder;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.net.http.HttpResponse.BodyHandlers;
 import java.nio.charset.StandardCharsets;
 
 public class ApiClient {
@@ -32,7 +33,6 @@ public class ApiClient {
         while ((line = br.readLine()) != null) {
             sb.append(line);
         }
-        System.out.println("Extrae de la api" + sb.toString());
         br.close();
         conn.disconnect();
 
@@ -40,23 +40,54 @@ public class ApiClient {
     }
 
     public static boolean crearEstudiante(String cedula, String nombre,
-            String direccion, String telefono)
-            throws Exception {
+            String direccion, String telefono) throws Exception {
 
-        // Codifica cada valor en UTF-8 para x-www-form-urlencoded
-        String form = "cedula="   + URLEncoder.encode(cedula, StandardCharsets.UTF_8)
-                    + "&nombre="  + URLEncoder.encode(nombre, StandardCharsets.UTF_8)
-                    + "&direccion="+ URLEncoder.encode(direccion, StandardCharsets.UTF_8)
-                    + "&telefono="+ URLEncoder.encode(telefono, StandardCharsets.UTF_8);
+        String parametros = parametrosCompletos(cedula, nombre, direccion, telefono);
+
+        HttpRequest req = HttpRequest.newBuilder(new URI(API_URL))
+                .header("Content-Type", "application/x-www-form-urlencoded")
+                .POST(HttpRequest.BodyPublishers.ofString(parametros))
+                .build();
+
+        HttpResponse<String> resp = HTTP.send(req, BodyHandlers.ofString());
+        System.out.println("Respuesta POST: " + resp.body());
+        return resp.statusCode() == 200;
+    }
+
+    public static boolean actualizarEstudiante(String cedula, String nombre,
+            String direccion, String telefono) throws Exception {
+        String form = parametrosCompletos(cedula, nombre, direccion, telefono);
 
         HttpRequest req = HttpRequest.newBuilder(URI.create(API_URL))
                 .header("Content-Type", "application/x-www-form-urlencoded")
-                .header("Accept", "application/json")
-                .POST(HttpRequest.BodyPublishers.ofString(form))
+                .PUT(HttpRequest.BodyPublishers.ofString(form))
                 .build();
 
         HttpResponse<String> resp = HTTP.send(req, HttpResponse.BodyHandlers.ofString());
-        // Ajusta esta condición al contrato de tu PHP si devuelve otro status
         return resp.statusCode() / 100 == 2;
+    }
+
+    public static boolean eliminarEstudiante(String cedula) throws Exception {
+        String url = API_URL + "?cedula=" + enc(cedula);
+
+        HttpRequest req = HttpRequest.newBuilder(URI.create(url))
+                .DELETE()
+                .header("Accept", "application/json")
+                .build();
+
+        HttpResponse<String> resp = HTTP.send(req, HttpResponse.BodyHandlers.ofString());
+        System.out.println("Respuesta DELETE: " + resp.body());
+        return resp.statusCode() / 100 == 2;
+    }
+
+    private static String enc(String valor) {
+        return URLEncoder.encode(valor, StandardCharsets.UTF_8);
+    }
+
+    private static String parametrosCompletos(String cedula, String nombre, String direccion, String telefono) {
+        return "cedula=" + enc(cedula)
+                + "&nombre=" + enc(nombre)
+                + "&direccion=" + enc(direccion)
+                + "&telefono=" + enc(telefono);
     }
 }

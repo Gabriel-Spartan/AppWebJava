@@ -13,6 +13,28 @@ if (request.getSession(false) == null ||
     <head>
         <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
         <title>Estudiantes</title>
+        <script type="text/javascript">
+            function confirmarEliminar(cedula) {
+                if (confirm("¿Seguro que desea eliminar al estudiante con cédula " + cedula + "?")) {
+                    // Crear un formulario
+                    var form = document.createElement("form");
+                    form.method = "post";
+                    form.action = "<%= request.getContextPath() %>/SvEstudiante";
+                    var f1 = document.createElement("input");
+                    f1.type = "hidden";
+                    f1.name = "accion";
+                    f1.value = "eliminar";
+                    var f2 = document.createElement("input");
+                    f2.type = "hidden";
+                    f2.name = "cedula";
+                    f2.value = cedula;
+                    form.appendChild(f1);
+                    form.appendChild(f2);
+                    document.body.appendChild(form);
+                    form.submit();
+                }
+            }
+        </script>
     </head>
     <body>
         <h1>Lista de estudiantes</h1>
@@ -23,6 +45,7 @@ if (request.getSession(false) == null ||
                 <th>Nombre</th>
                 <th>Dirección</th>
                 <th>Teléfono</th>
+                <th colspan="2">Acciones</th>
             </tr>
             <% 
                 JSONArray estudiantes = (JSONArray) request.getSession().getAttribute("estudiantes");
@@ -36,6 +59,17 @@ if (request.getSession(false) == null ||
                 <td><%= e.optString("nombre") %></td>
                 <td><%= e.optString("direccion") %></td>
                 <td><%= e.optString("telefono") %></td>
+                <td>
+                    <!-- Botón Editar -->
+                    <form method="post" action="<%= request.getContextPath() %>/SvEstudiante" style="display:inline">
+                        <input type="hidden" name="accion" value="editar"/>
+                        <input type="hidden" name="cedula" value="<%= e.optString("cedula") %>"/>
+                        <button type="submit">Editar</button>
+                    </form>
+                    &nbsp;
+                    <!-- Botón Eliminar -->
+                    <button type="button" onclick="confirmarEliminar('<%= e.optString("cedula") %>')">Eliminar</button>
+                </td>
             </tr>
             <%
                     }
@@ -48,6 +82,7 @@ if (request.getSession(false) == null ||
         </table>
         <h2>Nuevo estudiante</h2>
         <form method="post" action="${pageContext.request.contextPath}/SvEstudiante">
+            <input type="hidden" name="accion" value="crear"/>
             <p><label>Cédula:<input name="cedula" required /></label></p>
             <p><label>Nombre:<input name="nombre" required /></label></p>
             <p><label>Dirección:<input name="direccion" required /></label></p>
